@@ -25,11 +25,9 @@ spring:
         master:
           type: ${spring.datasource.type}
           driverClassName: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://43.139.70.230:3306/ruoyi-ai?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
-          username: ruoyi-ai
-          password: ruoyi-ai
-
-
+          url: jdbc:mysql://127.0.0.1:3306/ai_bank?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true
+          username: root
+          password: 'sunhaoming314159'
       hikari:
         # 最大连接池数量
         maxPoolSize: 20
@@ -48,11 +46,19 @@ spring:
         # 多久检查一次连接的活性
         keepaliveTime: 30000
 
+--- # Neo4j 数据库配置
+spring:
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: ${NEO4J_PASSWORD:neo4j123}
+
 --- # redis 单机配置(单机与集群只能开启一个另一个需要注释掉)
 spring.data:
   redis:
     # 地址
-    host: 127.0.0.1
+    host: 47.121.140.234
     # 端口，默认为6379
     port: 6379
     # 数据库索引
@@ -97,3 +103,37 @@ sms:
   signName: 测试
   # 腾讯专用
   sdkAppId:
+
+#--- # MyBatis-Plus Configuration
+#mybatis-plus:
+#  mapper-locations: classpath*:/mapper/**/*.xml
+#  type-aliases-package: com.example.knowledgegraph.domain
+#  configuration:
+#    map-underscore-to-camel-case: true
+#    cache-enabled: false
+#  global-config:
+#    banner: false
+#    db-config:
+#      id-type: AUTO
+#      table-underline: true
+
+--- # Knowledge Graph Configuration
+knowledge-graph:
+  initialization:
+    create-constraints: true
+    clear-database-on-startup: false
+  connector:
+    mysql:
+      enabled: true
+    neo4j:
+      enabled: true
+  verification:
+    enabled: true
+    verify-paths: true
+
+--- # Logging Configuration
+logging:
+  level:
+    com.example.knowledgegraph: INFO
+    org.springframework: WARN
+    org.neo4j.driver: WARN

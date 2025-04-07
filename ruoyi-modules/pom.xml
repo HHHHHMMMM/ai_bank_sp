@@ -22,6 +22,7 @@
         <module>ruoyi-system</module>
         <module>ruoyi-knowledge</module>
         <module>ruoyi-generator</module>
+        <module>ai-bank</module>
     </modules>
 
 </project>
