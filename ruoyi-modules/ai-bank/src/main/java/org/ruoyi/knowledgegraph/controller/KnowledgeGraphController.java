@@ -1,21 +1,21 @@
 package org.ruoyi.knowledgegraph.controller;
 
-
+import cn.dev33.satoken.annotation.SaCheckPermission;
+import org.ruoyi.common.core.domain.R;
+import org.ruoyi.common.log.annotation.Log;
+import org.ruoyi.common.log.enums.BusinessType;
+import org.ruoyi.common.web.core.BaseController;
 import org.ruoyi.knowledgegraph.service.impl.KnowledgeGraphService;
 import org.ruoyi.knowledgegraph.service.impl.VerificationService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * REST controller for knowledge graph operations
+ * 知识图谱管理控制器
  */
 @RestController
-@RequestMapping("/api/knowledge-graph")
-public class KnowledgeGraphController {
+@RequestMapping("/knowledge/graph")
+public class KnowledgeGraphController extends BaseController {
 
     private final KnowledgeGraphService knowledgeGraphService;
     private final VerificationService verificationService;
@@ -29,48 +29,41 @@ public class KnowledgeGraphController {
     }
 
     /**
-     * Create or recreate the entire knowledge graph
-     * @return Response with success status
+     * 创建/重建知识图谱
      */
+    @SaCheckPermission("knowledge:graph:create")
+    @Log(title = "知识图谱", businessType = BusinessType.INSERT)
     @PostMapping("/create")
-    public ResponseEntity<Map<String, Object>> createKnowledgeGraph() {
+    public R<String> createKnowledgeGraph() {
         boolean success = knowledgeGraphService.createKnowledgeGraph();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", success);
-        response.put("message", success ? "Knowledge graph created successfully" : "Failed to create knowledge graph");
-
-        return ResponseEntity.ok(response);
+        return success ?
+                R.ok("知识图谱创建成功") :
+                R.fail("知识图谱创建失败");
     }
 
     /**
-     * Clear the entire knowledge graph
-     * @return Response with success status
+     * 清空知识图谱
      */
+    @SaCheckPermission("knowledge:graph:clear")
+    @Log(title = "知识图谱", businessType = BusinessType.CLEAN)
     @DeleteMapping("/clear")
-    public ResponseEntity<Map<String, Object>> clearKnowledgeGraph() {
+    public R<String> clearKnowledgeGraph() {
         boolean success = knowledgeGraphService.clearKnowledgeGraph();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", success);
-        response.put("message", success ? "Knowledge graph cleared successfully" : "Failed to clear knowledge graph");
-
-        return ResponseEntity.ok(response);
+        return success ?
+                R.ok("知识图谱已清空") :
+                R.fail("知识图谱清空失败");
     }
 
     /**
-     * Verify the knowledge graph structure
-     * @return Response with verification results
+     * 验证知识图谱结构
      */
+    @SaCheckPermission("knowledge:graph:verify")
+    @Log(title = "知识图谱", businessType = BusinessType.OTHER)
     @GetMapping("/verify")
-    public ResponseEntity<Map<String, Object>> verifyKnowledgeGraph() {
+    public R<String> verifyKnowledgeGraph() {
         boolean success = verificationService.verifyKnowledgeGraph();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", success);
-        response.put("message", success ? "Knowledge graph verification successful" : "Knowledge graph verification failed");
-
-        return ResponseEntity.ok(response);
+        return success ?
+                R.ok("知识图谱验证通过") :
+                R.fail("知识图谱验证失败");
     }
 }
-

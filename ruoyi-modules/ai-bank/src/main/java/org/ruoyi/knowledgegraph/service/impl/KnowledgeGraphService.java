@@ -47,7 +47,7 @@ public class KnowledgeGraphService {
      */
     public boolean createKnowledgeGraph() {
         // 1. Create constraints if needed
-        constraintService.createConstraints();
+       // constraintService.createConstraints();
 
         // 2. Fetch all active problems
         List<Problem> problems = problemRepository.findAllActiveProblems();
