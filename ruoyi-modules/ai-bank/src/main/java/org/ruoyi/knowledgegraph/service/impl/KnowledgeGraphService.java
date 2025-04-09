@@ -243,18 +243,16 @@ public class KnowledgeGraphService {
     public Map<String, Object> getGraphData() {
         Map<String, Object> result = new HashMap<>();
 
-        // 获取所有节点
-        String nodeQuery = "MATCH (n) RETURN n, id(n) as id, labels(n) as labels";
-        // 创建空参数映射
-        Map<String, Object> emptyParams = new HashMap<>();
-        List<Map<String, Object>> nodes = neo4jConnector.executeQuery(nodeQuery, emptyParams);
+        // 修改节点查询，直接提取需要的属性
+        String nodeQuery = "MATCH (n) RETURN id(n) as id, n.name as name, labels(n)[0] as nodeType, properties(n) as properties";
+        List<Map<String, Object>> nodes = neo4jConnector.executeQuery(nodeQuery, new HashMap<>());
 
-        // 获取所有关系
-        String relationQuery = "MATCH ()-[r]->() RETURN id(r) as id, id(startNode(r)) as source, id(endNode(r)) as target, type(r) as type, r as properties";
-        List<Map<String, Object>> relations = neo4jConnector.executeQuery(relationQuery, emptyParams);
+        // 修改关系查询
+        String relationQuery = "MATCH ()-[r]->() RETURN id(r) as id, id(startNode(r)) as source, id(endNode(r)) as target, type(r) as relationLabel, properties(r) as properties";
+        List<Map<String, Object>> edges = neo4jConnector.executeQuery(relationQuery, new HashMap<>());
 
         result.put("nodes", nodes);
-        result.put("edges", relations);
+        result.put("edges", edges);
 
         return result;
     }
