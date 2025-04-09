@@ -10,6 +10,8 @@ import org.ruoyi.knowledgegraph.service.impl.VerificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * 知识图谱管理控制器
  */
@@ -31,7 +33,6 @@ public class KnowledgeGraphController extends BaseController {
     /**
      * 创建/重建知识图谱
      */
-    @SaCheckPermission("knowledge:graph:create")
     @Log(title = "知识图谱", businessType = BusinessType.INSERT)
     @PostMapping("/create")
     public R<String> createKnowledgeGraph() {
@@ -44,7 +45,6 @@ public class KnowledgeGraphController extends BaseController {
     /**
      * 清空知识图谱
      */
-    @SaCheckPermission("knowledge:graph:clear")
     @Log(title = "知识图谱", businessType = BusinessType.CLEAN)
     @DeleteMapping("/clear")
     public R<String> clearKnowledgeGraph() {
@@ -57,7 +57,6 @@ public class KnowledgeGraphController extends BaseController {
     /**
      * 验证知识图谱结构
      */
-    @SaCheckPermission("knowledge:graph:verify")
     @Log(title = "知识图谱", businessType = BusinessType.OTHER)
     @GetMapping("/verify")
     public R<String> verifyKnowledgeGraph() {
@@ -65,5 +64,62 @@ public class KnowledgeGraphController extends BaseController {
         return success ?
                 R.ok("知识图谱验证通过") :
                 R.fail("知识图谱验证失败");
+    }
+
+    /**
+     * 创建节点
+     */
+    @Log(title = "知识图谱", businessType = BusinessType.INSERT)
+    @PostMapping("/node")
+    public R<String> createNode(@RequestBody Map<String, Object> nodeData) {
+        boolean success = knowledgeGraphService.createNode(nodeData);
+        return success ?
+                R.ok("节点创建成功") :
+                R.fail("节点创建失败");
+    }
+
+    /**
+     * 创建关系
+     */
+    @Log(title = "知识图谱", businessType = BusinessType.INSERT)
+    @PostMapping("/relation")
+    public R<String> createRelation(@RequestBody Map<String, Object> relationData) {
+        boolean success = knowledgeGraphService.createRelation(relationData);
+        return success ?
+                R.ok("关系创建成功") :
+                R.fail("关系创建失败");
+    }
+
+    /**
+     * 获取图谱数据
+     */
+    @GetMapping("/data")
+    public R<Map<String, Object>> getGraphData() {
+        Map<String, Object> graphData = knowledgeGraphService.getGraphData();
+        return R.ok(graphData);
+    }
+
+    /**
+     * 删除节点
+     */
+    @Log(title = "知识图谱", businessType = BusinessType.DELETE)
+    @DeleteMapping("/node/{nodeId}")
+    public R<String> deleteNode(@PathVariable String nodeId) {
+        boolean success = knowledgeGraphService.deleteNode(nodeId);
+        return success ?
+                R.ok("节点删除成功") :
+                R.fail("节点删除失败");
+    }
+
+    /**
+     * 删除关系
+     */
+    @Log(title = "知识图谱", businessType = BusinessType.DELETE)
+    @DeleteMapping("/relation/{relationId}")
+    public R<String> deleteRelation(@PathVariable String relationId) {
+        boolean success = knowledgeGraphService.deleteRelation(relationId);
+        return success ?
+                R.ok("关系删除成功") :
+                R.fail("关系删除失败");
     }
 }
