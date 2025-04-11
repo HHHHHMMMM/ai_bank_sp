@@ -5,6 +5,9 @@ import org.ruoyi.common.core.domain.R;
 import org.ruoyi.common.log.annotation.Log;
 import org.ruoyi.common.log.enums.BusinessType;
 import org.ruoyi.common.web.core.BaseController;
+import org.ruoyi.knowledgegraph.domain.Problem;
+import org.ruoyi.knowledgegraph.domain.Step;
+import org.ruoyi.knowledgegraph.domain.StepRelation;
 import org.ruoyi.knowledgegraph.service.impl.KnowledgeGraphService;
 import org.ruoyi.knowledgegraph.service.impl.VerificationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,15 +70,27 @@ public class KnowledgeGraphController extends BaseController {
     }
 
     /**
-     * 创建节点
+     * 创建问题节点
      */
     @Log(title = "知识图谱", businessType = BusinessType.INSERT)
     @PostMapping("/node")
-    public R<String> createNode(@RequestBody Map<String, Object> nodeData) {
-        boolean success = knowledgeGraphService.createNode(nodeData);
+    public R<String> createNode(@RequestBody Problem problem) {
+        boolean success = knowledgeGraphService.createProblemGraph(problem);
         return success ?
                 R.ok("节点创建成功") :
                 R.fail("节点创建失败");
+    }
+
+    /**
+     * 创建步骤节点
+     */
+    @Log(title = "知识图谱", businessType = BusinessType.INSERT)
+    @PostMapping("/stepNode")
+    public R<String> createStepNode(@RequestBody Step step) {
+        boolean success = knowledgeGraphService.createStepNode(step);
+        return success ?
+                R.ok("step节点创建成功") :
+                R.fail("step节点创建失败");
     }
 
     /**
@@ -83,8 +98,8 @@ public class KnowledgeGraphController extends BaseController {
      */
     @Log(title = "知识图谱", businessType = BusinessType.INSERT)
     @PostMapping("/relation")
-    public R<String> createRelation(@RequestBody Map<String, Object> relationData) {
-        boolean success = knowledgeGraphService.createRelation(relationData);
+    public R<String> createRelation(@RequestBody StepRelation stepRelation) {
+        boolean success = knowledgeGraphService.createStepRelation(stepRelation);
         return success ?
                 R.ok("关系创建成功") :
                 R.fail("关系创建失败");
@@ -122,4 +137,7 @@ public class KnowledgeGraphController extends BaseController {
                 R.ok("关系删除成功") :
                 R.fail("关系删除失败");
     }
+
+
+
 }

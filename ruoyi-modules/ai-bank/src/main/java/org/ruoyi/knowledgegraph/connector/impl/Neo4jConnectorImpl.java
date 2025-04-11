@@ -78,13 +78,35 @@ public class Neo4jConnectorImpl implements org.ruoyi.knowledgegraph.connector.Ne
     public int executeUpdate(String statement, Map<String, Object> params) {
         try (Session session = driver.session()) {
             Result result = session.run(statement, params != null ? params : Collections.emptyMap());
-            return result.consume().counters().nodesCreated() +
-                    result.consume().counters().nodesDeleted() +
-                    result.consume().counters().relationshipsCreated() +
-                    result.consume().counters().relationshipsDeleted();
+
+            // 尝试获取结果
+            if (result.hasNext()) {
+                try {
+                    Record record = result.next();
+                    // 如果结果包含id字段，返回 1 表示成功
+                    if (record.containsKey("id")) {
+                        return 1;
+                    }
+                } catch (Exception e) {
+                    // 忽略获取结果的异常，继续使用计数器
+                    logger.warn("Could not extract ID from result: {}", e.getMessage());
+                }
+            }
+
+            // 尝试获取更新计数
+            try {
+                return result.consume().counters().nodesCreated() +
+                        result.consume().counters().nodesDeleted() +
+                        result.consume().counters().relationshipsCreated() +
+                        result.consume().counters().relationshipsDeleted();
+            } catch (Exception e) {
+                // 无法获取计数器但操作可能已成功
+                logger.warn("Could not get counters: {}", e.getMessage());
+                return 1; // 假设成功
+            }
         } catch (Exception e) {
             logger.error("Failed to execute Neo4j update: {}", e.getMessage());
-            return 0;
+            throw new RuntimeException("Neo4j update failed: " + e.getMessage(), e);
         }
     }
 

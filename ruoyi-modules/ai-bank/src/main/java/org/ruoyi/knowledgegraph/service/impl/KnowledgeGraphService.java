@@ -70,7 +70,7 @@ public class KnowledgeGraphService {
      * Create the knowledge graph for a specific problem
      * @param problem the problem to create the graph for
      */
-    private void createProblemGraph(Problem problem) {
+    public  boolean createProblemGraph(Problem problem) {
         String problemId = problem.getProblemId();
         String problemType = problem.getProblemType();
 
@@ -83,53 +83,16 @@ public class KnowledgeGraphService {
         params.put("description", problem.getDescription());
 
         String query = "MERGE (p:Problem {problem_id: $problem_id, problem_type: $problem_type, description: $description})";
-        neo4jConnector.executeUpdate(query, params);
+        int i = neo4jConnector.executeUpdate(query, params);
+        return i > 0;
 
-        // 2. Fetch and create solution steps
-        List<Step> steps = stepRepository.findByProblemId(problemId);
-        if (steps.isEmpty()) {
-            logger.warn("Problem {} has no solution steps", problemId);
-            return;
-        }
-
-        logger.info("Found {} solution steps for problem {}", steps.size(), problemId);
-
-        // Create step nodes
-        for (Step step : steps) {
-            createStepNode(step);
-        }
-
-        // 3. Create first step relation
-        params = new HashMap<>();
-        params.put("problem_id", problemId);
-
-        query = "MATCH (p:Problem {problem_id: $problem_id}) " +
-                "MATCH (s:Step {problem_id: $problem_id, step_id: 1}) " +
-                "MERGE (p)-[:FIRST_STEP]->(s)";
-        neo4jConnector.executeUpdate(query, params);
-
-        // 4. Create step relations
-        List<StepRelation> relations = stepRelationRepository.findByProblemId(problemId);
-        if (relations.isEmpty()) {
-            logger.warn("Problem {} has no step relations", problemId);
-            return;
-        }
-
-        logger.info("Found {} step relations for problem {}", relations.size(), problemId);
-
-        // Create relations
-        for (StepRelation relation : relations) {
-            createStepRelation(relation);
-        }
-
-        logger.info("Successfully created knowledge graph for problem {}", problemId);
     }
 
     /**
      * Create a step node in the graph
      * @param step the step to create
      */
-    private void createStepNode(Step step) {
+    public  boolean createStepNode(Step step) {
         Map<String, Object> params = new HashMap<>();
         params.put("problem_id", step.getProblemId());
         params.put("step_id", step.getStepId());
@@ -147,14 +110,15 @@ public class KnowledgeGraphService {
 
         String query = "MERGE (s:Step {problem_id: $problem_id, step_id: $step_id, operation: $operation}) " +
                 "SET s += $properties";
-        neo4jConnector.executeUpdate(query, params);
+        int i = neo4jConnector.executeUpdate(query, params);
+        return i > 0;
     }
 
     /**
      * Create a relation between steps
      * @param relation the relation to create
      */
-    private void createStepRelation(StepRelation relation) {
+    public boolean createStepRelation(StepRelation relation) {
         Map<String, Object> params = new HashMap<>();
         params.put("problem_id", relation.getProblemId());
         params.put("from_id", relation.getFromStepId());
@@ -172,7 +136,8 @@ public class KnowledgeGraphService {
                     "MERGE (s1)-[:NEXT_IF {condition: $condition}]->(s2)";
         }
 
-        neo4jConnector.executeUpdate(query, params);
+        int i = neo4jConnector.executeUpdate(query, params);
+        return i > 0;
     }
 
     /**
@@ -183,54 +148,54 @@ public class KnowledgeGraphService {
         return neo4jConnector.clearDatabase();
     }
 
-    /**
-     * 创建节点
-     * @param nodeData 节点数据
-     * @return 是否成功
-     */
-    public boolean createNode(Map<String, Object> nodeData) {
-        try {
-            String label = (String) nodeData.getOrDefault("label", "Node");
-            String query = "CREATE (n:" + label + ") SET n = $properties RETURN id(n)";
+//    /**
+//     * 创建节点
+//     * @param nodeData 节点数据
+//     * @return 是否成功
+//     */
+//    public boolean createNode(Map<String, Object> nodeData) {
+//        try {
+//            String label = (String) nodeData.getOrDefault("label", "Node");
+//            String query = "CREATE (n:" + label + ") SET n = $properties RETURN id(n)";
+//
+//            Map<String, Object> params = new HashMap<>();
+//            params.put("properties", nodeData);
+//
+//            neo4jConnector.executeUpdate(query, params);
+//            return true;
+//        } catch (Exception e) {
+//            logger.error("Failed to create node", e);
+//            return false;
+//        }
+//    }
 
-            Map<String, Object> params = new HashMap<>();
-            params.put("properties", nodeData);
-
-            neo4jConnector.executeUpdate(query, params);
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to create node", e);
-            return false;
-        }
-    }
-
-    /**
-     * 创建关系
-     * @param relationData 关系数据
-     * @return 是否成功
-     */
-    public boolean createRelation(Map<String, Object> relationData) {
-        try {
-            String sourceId = (String) relationData.get("sourceId");
-            String targetId = (String) relationData.get("targetId");
-            String type = (String) relationData.get("type");
-            Map<String, Object> properties = (Map<String, Object>) relationData.getOrDefault("properties", new HashMap<>());
-
-            String query = "MATCH (a), (b) WHERE id(a) = $sourceId AND id(b) = $targetId " +
-                    "CREATE (a)-[r:" + type + "]->(b) SET r = $properties RETURN id(r)";
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("sourceId", sourceId);
-            params.put("targetId", targetId);
-            params.put("properties", properties);
-
-            neo4jConnector.executeUpdate(query, params);
-            return true;
-        } catch (Exception e) {
-            logger.error("Failed to create relation", e);
-            return false;
-        }
-    }
+//    /**
+//     * 创建关系
+//     * @param relationData 关系数据
+//     * @return 是否成功
+//     */
+//    public boolean createRelation(Map<String, Object> relationData) {
+//        try {
+//            String sourceId = (String) relationData.get("sourceId");
+//            String targetId = (String) relationData.get("targetId");
+//            String type = (String) relationData.get("type");
+//            Map<String, Object> properties = (Map<String, Object>) relationData.getOrDefault("properties", new HashMap<>());
+//
+//            String query = "MATCH (a), (b) WHERE id(a) = $sourceId AND id(b) = $targetId " +
+//                    "CREATE (a)-[r:" + type + "]->(b) SET r = $properties RETURN id(r)";
+//
+//            Map<String, Object> params = new HashMap<>();
+//            params.put("sourceId", sourceId);
+//            params.put("targetId", targetId);
+//            params.put("properties", properties);
+//
+//            neo4jConnector.executeUpdate(query, params);
+//            return true;
+//        } catch (Exception e) {
+//            logger.error("Failed to create relation", e);
+//            return false;
+//        }
+//    }
 
     /**
      * 获取图谱数据
