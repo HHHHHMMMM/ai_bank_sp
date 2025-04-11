@@ -70,24 +70,80 @@ public class KnowledgeGraphService {
      * Create the knowledge graph for a specific problem
      * @param problem the problem to create the graph for
      */
-    public  boolean createProblemGraph(Problem problem) {
-        String problemId = problem.getProblemId();
+    public boolean createProblemGraph(Problem problem) {
         String problemType = problem.getProblemType();
 
-        logger.info("Processing problem: {} - {}", problemId, problemType);
+        // Generate problem ID based on problem type (format: TYPE001, TYPE002, etc.)
+        String generatedProblemId = generateProblemId(problemType);
+        problem.setProblemId(generatedProblemId);
 
-        // 1. Create problem node
+        logger.info("Processing problem: {} - {}", generatedProblemId, problemType);
+
+        // Create problem node
         Map<String, Object> params = new HashMap<>();
-        params.put("problem_id", problemId);
+        params.put("problem_id", generatedProblemId);
         params.put("problem_type", problemType);
         params.put("description", problem.getDescription());
 
         String query = "MERGE (p:Problem {problem_id: $problem_id, problem_type: $problem_type, description: $description})";
         int i = neo4jConnector.executeUpdate(query, params);
         return i > 0;
-
     }
 
+    /**
+     * Generate a unique problem ID based on problem type
+     * Format: TYPE001, TYPE002, etc.
+     */
+    private String generateProblemId(String problemType) {
+        // Query to find the maximum ID for the given problem type
+        String query = "MATCH (p:Problem) WHERE p.problem_type = $problem_type " +
+                "RETURN p.problem_id AS problemId ORDER BY p.problem_id DESC LIMIT 1";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("problem_type", problemType);
+
+        Map<String, Object> result = neo4jConnector.executeSingleQuery(query, params);
+
+        int nextNum = 1; // Default start with 001
+
+        if (result != null && result.get("problemId") != null) {
+            String latestId = (String) result.get("problemId");
+            String[] parts = latestId.split("-");
+            String numericPart = parts[parts.length - 1];  // 显式获取最后一个元素
+
+            try {
+                nextNum = Integer.parseInt(numericPart) + 1;
+            } catch (NumberFormatException e) {
+                logger.warn("Could not parse numeric part of problem ID: {}", latestId);
+                // Default to 1 if parsing fails
+            }
+        }
+
+        // Format: TYPE001, TYPE002, etc.
+        return problemType + String.format("%03d", nextNum);
+    }
+
+    /**
+     * Update an existing problem node
+     */
+    public boolean updateProblemGraph(Problem problem) {
+        String problemId = problem.getProblemId();
+        String problemType = problem.getProblemType();
+
+        logger.info("Updating problem: {} - {}", problemId, problemType);
+
+        // Update problem node
+        Map<String, Object> params = new HashMap<>();
+        params.put("problem_id", problemId);
+        params.put("problem_type", problemType);
+        params.put("description", problem.getDescription());
+
+        String query = "MATCH (p:Problem {problem_id: $problem_id}) " +
+                "SET p.problem_type = $problem_type, p.description = $description";
+
+        int i = neo4jConnector.executeUpdate(query, params);
+        return i > 0;
+    }
     /**
      * Create a step node in the graph
      * @param step the step to create
@@ -148,54 +204,7 @@ public class KnowledgeGraphService {
         return neo4jConnector.clearDatabase();
     }
 
-//    /**
-//     * 创建节点
-//     * @param nodeData 节点数据
-//     * @return 是否成功
-//     */
-//    public boolean createNode(Map<String, Object> nodeData) {
-//        try {
-//            String label = (String) nodeData.getOrDefault("label", "Node");
-//            String query = "CREATE (n:" + label + ") SET n = $properties RETURN id(n)";
-//
-//            Map<String, Object> params = new HashMap<>();
-//            params.put("properties", nodeData);
-//
-//            neo4jConnector.executeUpdate(query, params);
-//            return true;
-//        } catch (Exception e) {
-//            logger.error("Failed to create node", e);
-//            return false;
-//        }
-//    }
 
-//    /**
-//     * 创建关系
-//     * @param relationData 关系数据
-//     * @return 是否成功
-//     */
-//    public boolean createRelation(Map<String, Object> relationData) {
-//        try {
-//            String sourceId = (String) relationData.get("sourceId");
-//            String targetId = (String) relationData.get("targetId");
-//            String type = (String) relationData.get("type");
-//            Map<String, Object> properties = (Map<String, Object>) relationData.getOrDefault("properties", new HashMap<>());
-//
-//            String query = "MATCH (a), (b) WHERE id(a) = $sourceId AND id(b) = $targetId " +
-//                    "CREATE (a)-[r:" + type + "]->(b) SET r = $properties RETURN id(r)";
-//
-//            Map<String, Object> params = new HashMap<>();
-//            params.put("sourceId", sourceId);
-//            params.put("targetId", targetId);
-//            params.put("properties", properties);
-//
-//            neo4jConnector.executeUpdate(query, params);
-//            return true;
-//        } catch (Exception e) {
-//            logger.error("Failed to create relation", e);
-//            return false;
-//        }
-//    }
 
     /**
      * 获取图谱数据

@@ -137,7 +137,29 @@ public class KnowledgeGraphController extends BaseController {
                 R.ok("关系删除成功") :
                 R.fail("关系删除失败");
     }
+//    /**
+//     * 更新节点
+//     */
+//    @Log(title = "知识图谱", businessType = BusinessType.UPDATE)
+//    @PutMapping("/node/{nodeId}")
+//    public R<String> updateNode(@PathVariable String nodeId, @RequestBody Problem problem) {
+//        boolean success = knowledgeGraphService.updateNode(nodeId, problem);
+//        return success ?
+//                R.ok("节点更新成功") :
+//                R.fail("节点更新失败");
+//    }
 
+//    /**
+//     * 更新关系
+//     */
+//    @Log(title = "知识图谱", businessType = BusinessType.UPDATE)
+//    @PutMapping("/relation/{relationId}")
+//    public R<String> updateRelation(@PathVariable String relationId, @RequestBody StepRelation stepRelation) {
+//        boolean success = knowledgeGraphService.updateRelation(relationId, stepRelation);
+//        return success ?
+//                R.ok("关系更新成功") :
+//                R.fail("关系更新失败");
+//    }
 
 
 }
