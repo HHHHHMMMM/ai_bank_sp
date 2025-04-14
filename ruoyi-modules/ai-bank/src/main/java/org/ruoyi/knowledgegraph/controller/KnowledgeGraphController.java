@@ -167,4 +167,10 @@ public class KnowledgeGraphController extends BaseController {
         return R.ok(list);
     }
 
+    @GetMapping("/{problemId}")
+    public R<List<Step>> getStepsByProblemId(@PathVariable String problemId) {
+        List<Step> steps = knowledgeGraphService.getStepsByProblemId(problemId);
+        return R.ok(steps);
+    }
+
 }

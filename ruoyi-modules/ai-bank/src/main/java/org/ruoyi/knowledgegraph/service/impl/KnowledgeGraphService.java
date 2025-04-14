@@ -168,7 +168,6 @@ public class KnowledgeGraphService {
         String query = "MERGE (s:Step {problem_id: $problem_id, step_id: $step_id, operation: $operation}) " +
                 "SET s += $properties";
         int i = neo4jConnector.executeUpdate(query, params);
-        logger.error("Failed to delete node", i);
         return i > 0;
     }
 
@@ -179,25 +178,74 @@ public class KnowledgeGraphService {
     public boolean createStepRelation(StepRelation relation) {
         Map<String, Object> params = new HashMap<>();
         params.put("problem_id", relation.getProblemId());
-        params.put("from_id", relation.getFromStepId());
-        params.put("to_id", relation.getToStepId());
 
-        String query;
-        if ("NEXT_DEFAULT".equals(relation.getRelationType())) {
-            query = "MATCH (s1:Step {problem_id: $problem_id, step_id: $from_id}) " +
-                    "MATCH (s2:Step {problem_id: $problem_id, step_id: $to_id}) " +
-                    "MERGE (s1)-[:NEXT_DEFAULT]->(s2)";
-        } else {
-            params.put("condition", relation.getConditionExpression());
-            query = "MATCH (s1:Step {problem_id: $problem_id, step_id: $from_id}) " +
-                    "MATCH (s2:Step {problem_id: $problem_id, step_id: $to_id}) " +
-                    "MERGE (s1)-[:NEXT_IF {condition: $condition}]->(s2)";
+        // 首先检查问题节点是否存在
+        String checkProblemQuery = "MATCH (p:Problem {problem_id: $problem_id}) RETURN count(p) as count";
+        List<Map<String, Object>> problemResult = neo4jConnector.executeQuery(checkProblemQuery, params);
+
+        if (problemResult == null || problemResult.isEmpty() || (Long)problemResult.get(0).get("count") == 0) {
+            System.out.println("找不到问题节点，问题ID: " + relation.getProblemId());
+            return false;
         }
 
-        int i = neo4jConnector.executeUpdate(query, params);
-        return i > 0;
-    }
+        // FIRST_STEP关系
+        if ("FIRST_STEP".equals(relation.getRelationType())) {
+            // 检查目标步骤节点是否存在
+            params.put("to_id", relation.getToStepId());
+            String checkStepQuery = "MATCH (s:Step) WHERE s.problem_id = $problem_id AND s.step_id = $to_id RETURN count(s) as count";
+            List<Map<String, Object>> stepResult = neo4jConnector.executeQuery(checkStepQuery, params);
 
+            if (stepResult == null || stepResult.isEmpty() || (Long)stepResult.get(0).get("count") == 0) {
+                System.out.println("找不到步骤节点，问题ID: " + relation.getProblemId() + ", 步骤ID: " + relation.getToStepId());
+                return false;
+            }
+
+            String query = "MATCH (p:Problem {problem_id: $problem_id}) " +
+                    "MATCH (s:Step {problem_id: $problem_id, step_id: $to_id}) " +
+                    "CREATE (p)-[:FIRST_STEP]->(s)";
+
+            int i = neo4jConnector.executeUpdate(query, params);
+            return i > 0;
+        }
+        // 其他关系类型
+        else {
+            params.put("from_id", relation.getFromStepId());
+            params.put("to_id", relation.getToStepId());
+
+            // 检查源步骤节点是否存在
+            String checkFromStepQuery = "MATCH (s:Step {problem_id: $problem_id, step_id: $from_id}) RETURN count(s) as count";
+            List<Map<String, Object>> fromStepResult = neo4jConnector.executeQuery(checkFromStepQuery, params);
+
+            if (fromStepResult == null || fromStepResult.isEmpty() || (Long)fromStepResult.get(0).get("count") == 0) {
+                System.out.println("找不到源步骤节点，问题ID: " + relation.getProblemId() + ", 步骤ID: " + relation.getFromStepId());
+                return false;
+            }
+
+            // 检查目标步骤节点是否存在
+            String checkToStepQuery = "MATCH (s:Step {problem_id: $problem_id, step_id: $to_id}) RETURN count(s) as count";
+            List<Map<String, Object>> toStepResult = neo4jConnector.executeQuery(checkToStepQuery, params);
+
+            if (toStepResult == null || toStepResult.isEmpty() || (Long)toStepResult.get(0).get("count") == 0) {
+                System.out.println("找不到目标步骤节点，问题ID: " + relation.getProblemId() + ", 步骤ID: " + relation.getToStepId());
+                return false;
+            }
+
+            String query;
+            if ("NEXT_DEFAULT".equals(relation.getRelationType())) {
+                query = "MATCH (s1:Step {problem_id: $problem_id, step_id: $from_id}) " +
+                        "MATCH (s2:Step {problem_id: $problem_id, step_id: $to_id}) " +
+                        "CREATE (s1)-[:NEXT_DEFAULT]->(s2)";
+            } else {
+                params.put("condition", relation.getConditionExpression());
+                query = "MATCH (s1:Step {problem_id: $problem_id, step_id: $from_id}) " +
+                        "MATCH (s2:Step {problem_id: $problem_id, step_id: $to_id}) " +
+                        "CREATE (s1)-[:NEXT_IF {condition: $condition}]->(s2)";
+            }
+
+            int i = neo4jConnector.executeUpdate(query, params);
+            return i > 0;
+        }
+    }
     /**
      * Clear the entire knowledge graph
      * @return true if successful
@@ -298,5 +346,30 @@ public class KnowledgeGraphService {
         }
 
         return problemIds;
+    }
+
+    public List<Step> getStepsByProblemId(String problemId) {
+        String query = "MATCH (s:Step {problem_id: $problemId}) " +
+                "RETURN s.step_id as stepId, s.operation as operation, " +
+                "id(s) as id, s.problem_id as problemId";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("problemId", problemId);
+
+        List<Map<String, Object>> results = neo4jConnector.executeQuery(query, params);
+        List<Step> steps = new ArrayList<>();
+
+        if (results != null && !results.isEmpty()) {
+            for (Map<String, Object> row : results) {
+                Step step = new Step();
+                step.setId(Long.valueOf(row.get("id").toString()));
+                step.setProblemId((String) row.get("problemId"));
+                step.setStepId((Long) row.get("stepId"));
+                step.setOperation((String) row.get("operation"));
+                steps.add(step);
+            }
+        }
+
+        return steps;
     }
 }

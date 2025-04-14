@@ -17,7 +17,7 @@ public class Step {
     private String problemId;
 
     @TableField("step_id")
-    private Integer stepId;
+    private Long stepId;
 
     @TableField("operation")
     private String operation;
