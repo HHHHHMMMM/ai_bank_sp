@@ -13,6 +13,7 @@ import org.ruoyi.knowledgegraph.service.impl.VerificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -160,6 +161,10 @@ public class KnowledgeGraphController extends BaseController {
 //                R.ok("关系更新成功") :
 //                R.fail("关系更新失败");
 //    }
-
+    @GetMapping("/problemIds")
+    public R<List<Problem>> listProblemIds() {
+        List<Problem> list = knowledgeGraphService.listProblemIds();
+        return R.ok(list);
+    }
 
 }

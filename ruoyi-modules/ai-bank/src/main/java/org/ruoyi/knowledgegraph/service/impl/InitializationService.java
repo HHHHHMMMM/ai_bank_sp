@@ -48,20 +48,20 @@ public class InitializationService {
         }
 
         // Create the knowledge graph
-        boolean success = knowledgeGraphService.createKnowledgeGraph();
-        if (success) {
-            logger.info("Successfully created knowledge graph");
-
-            // Verify the knowledge graph
-            boolean verified = verificationService.verifyKnowledgeGraph();
-            if (verified) {
-                logger.info("Knowledge graph verification successful");
-            } else {
-                logger.warn("Knowledge graph verification failed");
-            }
-        } else {
-            logger.error("Failed to create knowledge graph");
-        }
+//        boolean success = knowledgeGraphService.createKnowledgeGraph();
+//        if (success) {
+//            logger.info("Successfully created knowledge graph");
+//
+//            // Verify the knowledge graph
+//            boolean verified = verificationService.verifyKnowledgeGraph();
+//            if (verified) {
+//                logger.info("Knowledge graph verification successful");
+//            } else {
+//                logger.warn("Knowledge graph verification failed");
+//            }
+//        } else {
+//            logger.error("Failed to create knowledge graph");
+//        }
 
         logger.info("Knowledge Graph Creator initialization complete");
     }

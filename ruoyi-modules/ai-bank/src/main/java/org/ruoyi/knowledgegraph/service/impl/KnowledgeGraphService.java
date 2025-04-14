@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +121,7 @@ public class KnowledgeGraphService {
         }
 
         // Format: TYPE001, TYPE002, etc.
-        return problemType + String.format("%03d", nextNum);
+        return problemType +"-"+ String.format("%03d", nextNum);
     }
 
     /**
@@ -167,6 +168,7 @@ public class KnowledgeGraphService {
         String query = "MERGE (s:Step {problem_id: $problem_id, step_id: $step_id, operation: $operation}) " +
                 "SET s += $properties";
         int i = neo4jConnector.executeUpdate(query, params);
+        logger.error("Failed to delete node", i);
         return i > 0;
     }
 
@@ -241,16 +243,17 @@ public class KnowledgeGraphService {
             String query = "MATCH (n) WHERE id(n) = $nodeId DETACH DELETE n";
 
             Map<String, Object> params = new HashMap<>();
-            params.put("nodeId", nodeId);
+            // 将字符串转换为整数
+            params.put("nodeId", Integer.parseInt(nodeId));
 
-            neo4jConnector.executeUpdate(query, params);
-            return true;
+            int i = neo4jConnector.executeUpdate(query, params);
+            if(i > 0) return true;
         } catch (Exception e) {
             logger.error("Failed to delete node", e);
             return false;
         }
+        return false;
     }
-
     /**
      * 删除关系
      * @param relationId 关系ID
@@ -269,5 +272,31 @@ public class KnowledgeGraphService {
             logger.error("Failed to delete relation", e);
             return false;
         }
+    }
+
+
+    /**
+     * 获取所有问题ID列表
+     * @return 问题ID列表
+     */
+    public List<Problem> listProblemIds() {
+        String query = "MATCH (p:Problem) RETURN p.problem_id as problemId, " +
+                "p.description as description, " +
+                "p.problem_type as problemType";
+
+        List<Map<String, Object>> results = neo4jConnector.executeQuery(query,new HashMap<>());
+        List<Problem> problemIds = new ArrayList<>();
+
+        if (results != null && !results.isEmpty()) {
+            for (Map<String, Object> row : results) {
+                Problem vo = new Problem();
+                vo.setProblemId((String) row.get("problemId"));
+                vo.setDescription((String) row.get("description"));
+                vo.setProblemType((String) row.get("problemType"));
+                problemIds.add(vo);
+            }
+        }
+
+        return problemIds;
     }
 }
