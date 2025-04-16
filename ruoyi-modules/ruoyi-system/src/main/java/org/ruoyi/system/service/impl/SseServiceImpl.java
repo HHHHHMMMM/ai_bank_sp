@@ -41,12 +41,15 @@ import org.ruoyi.common.core.utils.StringUtils;
 import org.ruoyi.common.core.utils.file.FileUtils;
 import org.ruoyi.common.core.utils.file.MimeTypeUtils;
 import org.ruoyi.common.satoken.utils.LoginHelper;
+import org.ruoyi.knowledgegraph.config.KnowledgeGraphConfig;
+import org.ruoyi.knowledgegraph.engine.SolutionService;
 import org.ruoyi.system.domain.SysModel;
 import org.ruoyi.system.domain.bo.ChatMessageBo;
 import org.ruoyi.system.domain.request.translation.TranslationRequest;
 import org.ruoyi.system.domain.vo.ChatGptsVo;
 import org.ruoyi.system.listener.SSEEventSourceListener;
 import org.ruoyi.system.service.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -97,6 +100,12 @@ public class SseServiceImpl implements ISseService {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    @Autowired
+    private SolutionService solutionService;
+
+    @Autowired
+    private KnowledgeGraphConfig knowledgeGraphConfig;
+
     @Override
     public SseEmitter sseChat(ChatRequest chatRequest, HttpServletRequest request) {
         openAiStreamClient = chatConfig.getOpenAiStreamClient();
@@ -123,6 +132,31 @@ public class SseServiceImpl implements ISseService {
                 // 审核状态 1 代表合法
                 if (!"1".equals(type) && StringUtils.isNotEmpty(type)) {
                     throw new BaseException("文本不合规,请修改!");
+                }
+            }
+
+            if (Boolean.TRUE.equals(chatRequest.isEnableKnowledgeGraph())
+                    && knowledgeGraphConfig.isKnowledgeGraphEnabled()
+                    && StpUtil.isLogin()) {
+
+                try {
+                    // 使用知识图谱处理查询
+                    String userId = String.valueOf(getUserId());
+                    String response = solutionService.processQuery(userId, chatString,chatRequest.getModel());
+
+                    // 如果知识图谱成功处理，直接返回结果
+                    if (response != null && !response.isEmpty()) {
+                        // 创建一个完整的回复消息
+                        sseEmitter.send(SseEmitter.event()
+                                .name("message")
+                                .data("{\"choices\":[{\"delta\":{\"content\":\"" + response + "\"}}]}", MediaType.APPLICATION_JSON));
+                        sseEmitter.send(SseEmitter.event().name("message").data("[DONE]", MediaType.APPLICATION_JSON));
+                        sseEmitter.complete();
+                        return sseEmitter;
+                    }
+                } catch (Exception e) {
+                    log.error("知识图谱处理失败，回退到标准处理", e);
+                    // 失败后继续使用标准处理流程
                 }
             }
 

@@ -50,6 +50,12 @@ public class ChatRequest {
      * 应用ID
      */
     private String appId;
+
+    /**
+     * 是否使用知识图谱
+     * **/
+    private boolean enableKnowledgeGraph;
+
 //
 
 //
