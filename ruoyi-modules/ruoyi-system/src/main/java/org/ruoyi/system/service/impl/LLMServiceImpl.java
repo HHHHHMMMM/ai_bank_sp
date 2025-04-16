@@ -5,8 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.ruoyi.common.chat.config.ChatConfig;
 import org.ruoyi.common.chat.openai.OpenAiStreamClient;
+import org.ruoyi.common.core.utils.SpringUtils;
 import org.ruoyi.knowledgegraph.service.impl.LLMService;
 import org.ruoyi.system.domain.SysModel;
+import org.ruoyi.system.service.ISysModelService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,24 +40,19 @@ public class LLMServiceImpl implements LLMService {
 
     @Autowired
     private ObjectMapper objectMapper;
+    private static final ISysModelService sysModelService = SpringUtils.getBean(ISysModelService.class);
 
     @Override
     public String askLLM(String systemPrompt, String userPrompt, String modelName, Map<String, Object> params) {
         try {
-            // 从ModelService获取模型信息
-            SysModel sysModel = null;
-            if (modelName != null) {
-              //  sysModel = sysModelService.selectModelByName(modelName);
-            }
-
             // 根据模型配置获取客户端
-            OpenAiStreamClient openAiStreamClient;
-            if (sysModel != null && StringUtils.isNotEmpty(sysModel.getApiHost()) && StringUtils.isNotEmpty(sysModel.getApiKey())) {
-                openAiStreamClient = chatConfig.createOpenAiStreamClient(sysModel.getApiHost(), sysModel.getApiKey());
-            } else {
-                openAiStreamClient = chatConfig.getOpenAiStreamClient();
-            }
+            openAiStreamClient = chatConfig.getOpenAiStreamClient();
 
+
+            SysModel sysModel = sysModelService.selectModelByName(modelName);
+            if (sysModel != null) {
+                openAiStreamClient = chatConfig.createOpenAiStreamClient(sysModel.getApiHost(), sysModel.getApiKey());
+            }
             // 构建消息
             List<Message> messages = new ArrayList<>();
 
